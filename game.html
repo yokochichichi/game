@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>素因数分解スピードゲーム</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .game-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            padding: 40px;
+            max-width: 600px;
+            width: 90%;
+            text-align: center;
+        }
+
+        h1 {
+            color: #4a5568;
+            margin-bottom: 30px;
+            font-size: 2.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .screen {
+            display: none;
+        }
+
+        .screen.active {
+            display: block;
+        }
+
+        .difficulty-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin: 30px 0;
+            flex-wrap: wrap;
+        }
+
+        .difficulty-btn {
+            padding: 15px 25px;
+            border: none;
+            border-radius: 15px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .difficulty-btn.easy {
+            background: linear-gradient(45deg, #48bb78, #38a169);
+            color: white;
+        }
+
+        .difficulty-btn.medium {
+            background: linear-gradient(45deg, #ed8936, #dd6b20);
+            color: white;
+        }
+
+        .difficulty-btn.hard {
+            background: linear-gradient(45deg, #e53e3e, #c53030);
+            color: white;
+        }
+
+        .difficulty-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+
+        .difficulty-btn.selected {
+            transform: scale(1.1);
+            box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.5);
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+            margin: 30px 0;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #f7fafc, #edf2f7);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #2d3748;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #718096;
+            margin-top: 5px;
+        }
+
+        .question-area {
+            margin: 40px 0;
+        }
+
+        .question-number {
+            font-size: 4rem;
+            font-weight: bold;
+            color: #4c51bf;
+            margin: 20px 0;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .input-area {
+            margin: 30px 0;
+        }
+
+        #answerInput {
+            width: 100%;
+            max-width: 400px;
+            padding: 15px;
+            font-size: 1.2rem;
+            border: 3px solid #e2e8f0;
+            border-radius: 15px;
+            text-align: center;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+
+        #answerInput:focus {
+            border-color: #4c51bf;
+            box-shadow: 0 0 0 3px rgba(76, 81, 191, 0.1);
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 25px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 10px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #4c51bf, #667eea);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(45deg, #718096, #4a5568);
+            color: white;
+        }
+
+        .btn-warning {
+            background: linear-gradient(45deg, #ed8936, #dd6b20);
+            color: white;
+        }
+
+        .btn-success {
+            background: linear-gradient(45deg, #48bb78, #38a169);
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(45deg, #e53e3e, #c53030);
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .feedback {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 15px;
+            font-size: 1.1rem;
+            font-weight: bold;
+        }
+
+        .feedback.correct {
+            background: linear-gradient(45deg, #c6f6d5, #9ae6b4);
+            color: #22543d;
+        }
+
+        .feedback.incorrect {
+            background: linear-gradient(45deg, #fed7d7, #fbb6ce);
+            color: #742a2a;
+        }
+
+        .ranking-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .ranking-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            margin: 10px 0;
+            background: linear-gradient(135deg, #f7fafc, #edf2f7);
+            border-radius: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .rank-number {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-right: 20px;
+            min-width: 40px;
+        }
+
+        .rank-1 { color: #d69e2e; }
+        .rank-2 { color: #a0aec0; }
+        .rank-3 { color: #dd6b20; }
+
+        .player-info {
+            flex: 1;
+            text-align: left;
+        }
+
+        .player-name {
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: #2d3748;
+        }
+
+        .player-stats {
+            font-size: 0.9rem;
+            color: #718096;
+        }
+
+        .name-input {
+            margin: 20px 0;
+        }
+
+        .name-input input {
+            padding: 12px;
+            font-size: 1.1rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            width: 250px;
+            text-align: center;
+        }
+
+        .rules {
+            background: linear-gradient(135deg, #ebf8ff, #bee3f8);
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
+            text-align: left;
+        }
+
+        .rules h3 {
+            color: #2b6cb0;
+            margin-bottom: 15px;
+        }
+
+        .rules ul {
+            color: #2c5282;
+            line-height: 1.6;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(45deg, #48bb78, #38a169);
+            transition: width 1s ease;
+        }
+
+        @media (max-width: 768px) {
+            .game-container {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .question-number {
+                font-size: 3rem;
+            }
+            
+            .difficulty-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>🧮 素因数分解スピードゲーム</h1>
+
+        <!-- メニュー画面 -->
+        <div id="menuScreen" class="screen active">
+            <div class="rules">
+                <h3>📋 ルール</h3>
+                <ul>
+                    <li>表示された数を素因数分解してください</li>
+                    <li>答えは「2 3 5」のように半角スペースで区切って入力</li>
+                    <li>制限時間は60秒です</li>
+                    <li>正解するとポイントが加算されます</li>
+                </ul>
+            </div>
+            
+            <p style="margin: 20px 0; color: #4a5568;">難易度を選択してください：</p>
+            <div class="difficulty-buttons">
+                <button class="difficulty-btn easy selected" data-difficulty="easy">
+                    😊 簡単<br><small>(4-50)</small>
+                </button>
+                <button class="difficulty-btn medium" data-difficulty="medium">
+                    😐 普通<br><small>(25-200)</small>
+                </button>
+                <button class="difficulty-btn hard" data-difficulty="hard">
+                    😤 困難<br><small>(100-500)</small>
+                </button>
+            </div>
+            
+            <div>
+                <button class="btn btn-primary" onclick="startGame()">🎮 ゲーム開始</button>
+                <button class="btn btn-warning" onclick="showRanking()">🏆 ランキング</button>
+            </div>
+        </div>
+
+        <!-- ゲーム画面 -->
+        <div id="gameScreen" class="screen">
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-number" id="timeDisplay">60</div>
+                    <div class="stat-label">⏰ 残り時間</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="scoreDisplay">0</div>
+                    <div class="stat-label">⭐ スコア</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="correctDisplay">0</div>
+                    <div class="stat-label">✅ 正解数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="accuracyDisplay">0</div>
+                    <div class="stat-label">🎯 正答率(%)</div>
+                </div>
+            </div>
+            
+            <div class="progress-bar">
+                <div class="progress-fill" id="timeProgress"></div>
+            </div>
+            
+            <div class="question-area">
+                <p>この数を素因数分解してください：</p>
+                <div class="question-number" id="questionNumber">12</div>
+            </div>
+            
+            <div class="input-area">
+                <input type="text" id="answerInput" placeholder="例: 2 2 3" maxlength="50">
+                <br>
+                <button class="btn btn-success" onclick="checkAnswer()">💡 答える</button>
+            </div>
+            
+            <div id="feedback" class="feedback" style="display: none;"></div>
+            
+            <div>
+                <button class="btn btn-secondary" onclick="pauseGame()" id="pauseBtn">⏸️ 一時停止</button>
+                <button class="btn btn-danger" onclick="endGame()">🔚 終了</button>
+            </div>
+        </div>
+
+        <!-- 結果画面 -->
+        <div id="resultScreen" class="screen">
+            <h2 style="color: #4c51bf; margin-bottom: 20px;">🎉 ゲーム終了！</h2>
+            
+            <div class="stat-card" style="margin: 20px 0;">
+                <div class="stat-number" id="finalScore">0</div>
+                <div class="stat-label">最終スコア</div>
+            </div>
+            
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-number" id="finalCorrect">0</div>
+                    <div class="stat-label">正解数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="finalAccuracy">0</div>
+                    <div class="stat-label">正答率(%)</div>
+                </div>
+            </div>
+            
+            <div class="name-input">
+                <p>ランキングに記録しますか？</p>
+                <input type="text" id="playerName" placeholder="プレイヤー名を入力" maxlength="20">
+                <br>
+                <button class="btn btn-warning" onclick="saveToRanking()">📝 記録する</button>
+            </div>
+            
+            <div>
+                <button class="btn btn-primary" onclick="showMenu()">🏠 メニューに戻る</button>
+                <button class="btn btn-success" onclick="startGame()">🔄 もう一度</button>
+            </div>
+        </div>
+
+        <!-- ランキング画面 -->
+        <div id="rankingScreen" class="screen">
+            <h2 style="color: #d69e2e; margin-bottom: 20px;">🏆 ランキング</h2>
+            
+            <div id="rankingList" class="ranking-list"></div>
+            
+            <div>
+                <button class="btn btn-primary" onclick="showMenu()">🏠 メニューに戻る</button>
+                <button class="btn btn-danger" onclick="clearRankings()">🗑️ クリア</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ゲーム状態
+        let gameState = {
+            difficulty: 'easy',
+            score: 0,
+            correctAnswers: 0,
+            totalQuestions: 0,
+            currentNumber: 0,
+            timeLeft: 60,
+            gameTimer: null,
+            isPaused: false
+        };
+
+        // ランキングデータ
+        let rankings = JSON.parse(localStorage.getItem('primeFactorizationRankings') || '[]');
+
+        // 素因数分解関数
+        function primeFactorize(n) {
+            const factors = [];
+            let d = 2;
+            while (d * d <= n) {
+                while (n % d === 0) {
+                    factors.push(d);
+                    n /= d;
+                }
+                d++;
+            }
+            if (n > 1) {
+                factors.push(n);
+            }
+            return factors;
+        }
+
+        // 難易度に応じた数値生成
+        function generateNumber(difficulty) {
+            let min, max;
+            switch (difficulty) {
+                case 'easy': min = 4; max = 50; break;
+                case 'medium': min = 25; max = 200; break;
+                case 'hard': min = 100; max = 500; break;
+                default: min = 4; max = 50;
+            }
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        // 画面表示切り替え
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(screen => {
+                screen.classList.remove('active');
+            });
+            document.getElementById(screenId).classList.add('active');
+        }
+
+        // 難易度選択
+        document.querySelectorAll('.difficulty-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.difficulty-btn').forEach(b => b.classList.remove('selected'));
+                this.classList.add('selected');
+                gameState.difficulty = this.dataset.difficulty;
+            });
+        });
+
+        // メニュー表示
+        function showMenu() {
+            showScreen('menuScreen');
+            resetGame();
+        }
+
+        // ゲーム開始
+        function startGame() {
+            resetGame();
+            showScreen('gameScreen');
+            generateNewQuestion();
+            startTimer();
+            document.getElementById('answerInput').focus();
+        }
+
+        // ゲームリセット
+        function resetGame() {
+            gameState.score = 0;
+            gameState.correctAnswers = 0;
+            gameState.totalQuestions = 0;
+            gameState.timeLeft = 60;
+            gameState.isPaused = false;
+            clearInterval(gameState.gameTimer);
+            updateDisplay();
+        }
+
+        // 新しい問題生成
+        function generateNewQuestion() {
+            gameState.currentNumber = generateNumber(gameState.difficulty);
+            gameState.totalQuestions++;
+            document.getElementById('questionNumber').textContent = gameState.currentNumber;
+            document.getElementById('answerInput').value = '';
+            document.getElementById('feedback').style.display = 'none';
+        }
+
+        // タイマー開始
+        function startTimer() {
+            gameState.gameTimer = setInterval(() => {
+                if (!gameState.isPaused) {
+                    gameState.timeLeft--;
+                    updateDisplay();
+                    
+                    if (gameState.timeLeft <= 0) {
+                        endGame();
+                    }
+                }
+            }, 1000);
+        }
+
+        // 表示更新
+        function updateDisplay() {
+            document.getElementById('timeDisplay').textContent = gameState.timeLeft;
+            document.getElementById('scoreDisplay').textContent = gameState.score;
+            document.getElementById('correctDisplay').textContent = gameState.correctAnswers;
+            
+            const accuracy = gameState.totalQuestions > 0 ? 
+                Math.round((gameState.correctAnswers / gameState.totalQuestions) * 100) : 0;
+            document.getElementById('accuracyDisplay').textContent = accuracy;
+            
+            // プログレスバー更新
+            const progress = (gameState.timeLeft / 60) * 100;
+            document.getElementById('timeProgress').style.width = progress + '%';
+        }
+
+        // 答えをチェック
+        function checkAnswer() {
+            const userInput = document.getElementById('answerInput').value.trim();
+            if (!userInput) return;
+
+            const correctFactors = primeFactorize(gameState.currentNumber);
+            const userFactors = userInput.split(/\s+/).map(n => parseInt(n)).filter(n => !isNaN(n)).sort((a, b) => a - b);
+            
+            const isCorrect = JSON.stringify(correctFactors.sort((a, b) => a - b)) === JSON.stringify(userFactors);
+            
+            const feedbackEl = document.getElementById('feedback');
+            feedbackEl.style.display = 'block';
+            
+            if (isCorrect) {
+                gameState.correctAnswers++;
+                const timeBonus = Math.max(1, Math.floor(gameState.timeLeft / 10));
+                const difficultyMultiplier = gameState.difficulty === 'easy' ? 1 : gameState.difficulty === 'medium' ? 2 : 3;
+                const points = (10 + timeBonus) * difficultyMultiplier;
+                gameState.score += points;
+                
+                feedbackEl.className = 'feedback correct';
+                feedbackEl.textContent = `🎉 正解！ +${points}点`;
+                
+                setTimeout(() => {
+                    generateNewQuestion();
+                }, 1500);
+            } else {
+                feedbackEl.className = 'feedback incorrect';
+                feedbackEl.textContent = `❌ 不正解... 正解: ${correctFactors.join(' ')}`;
+                
+                setTimeout(() => {
+                    generateNewQuestion();
+                }, 3000);
+            }
+            
+            updateDisplay();
+        }
+
+        // Enterキーで答えをチェック
+        document.getElementById('answerInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                checkAnswer();
+            }
+        });
+
+        // ゲーム一時停止
+        function pauseGame() {
+            gameState.isPaused = !gameState.isPaused;
+            const pauseBtn = document.getElementById('pauseBtn');
+            pauseBtn.textContent = gameState.isPaused ? '▶️ 再開' : '⏸️ 一時停止';
+        }
+
+        // ゲーム終了
+        function endGame() {
+            clearInterval(gameState.gameTimer);
+            
+            const accuracy = gameState.totalQuestions > 0 ? 
+                Math.round((gameState.correctAnswers / gameState.totalQuestions) * 100) : 0;
+            
+            document.getElementById('finalScore').textContent = gameState.score;
+            document.getElementById('finalCorrect').textContent = gameState.correctAnswers;
+            document.getElementById('finalAccuracy').textContent = accuracy;
+            
+            showScreen('resultScreen');
+            document.getElementById('playerName').focus();
+        }
+
+        // ランキングに保存
+        function saveToRanking() {
+            const playerName = document.getElementById('playerName').value.trim();
+            if (!playerName) {
+                alert('プレイヤー名を入力してください');
+                return;
+            }
+
+            const accuracy = gameState.totalQuestions > 0 ? 
+                Math.round((gameState.correctAnswers / gameState.totalQuestions) * 100) : 0;
+
+            const record = {
+                name: playerName,
+                score: gameState.score,
+                correctAnswers: gameState.correctAnswers,
+                accuracy: accuracy,
+                difficulty: gameState.difficulty,
+                date: new Date().toLocaleDateString('ja-JP')
+            };
+
+            rankings.push(record);
+            rankings.sort((a, b) => b.score - a.score);
+            rankings = rankings.slice(0, 10); // 上位10位まで
+
+            localStorage.setItem('primeFactorizationRankings', JSON.stringify(rankings));
+            
+            alert('ランキングに記録しました！');
+            showRanking();
+        }
+
+        // ランキング表示
+        function showRanking() {
+            showScreen('rankingScreen');
+            displayRankings();
+        }
+
+        // ランキング表示更新
+        function displayRankings() {
+            const rankingList = document.getElementById('rankingList');
+            
+            if (rankings.length === 0) {
+                rankingList.innerHTML = '<p style="text-align: center; color: #718096; margin: 40px 0;">まだ記録がありません</p>';
+                return;
+            }
+
+            let html = '';
+            rankings.forEach((record, index) => {
+                const difficultyEmoji = record.difficulty === 'easy' ? '😊' : record.difficulty === 'medium' ? '😐' : '😤';
+                const difficultyText = record.difficulty === 'easy' ? '簡単' : record.difficulty === 'medium' ? '普通' : '困難';
+                
+                html += `
+                    <div class="ranking-item">
+                        <div class="rank-number rank-${index + 1}">${index + 1}</div>
+                        <div class="player-info">
+                            <div class="player-name">${record.name}</div>
+                            <div class="player-stats">
+                                ${difficultyEmoji} ${difficultyText} | 
+                                ⭐ ${record.score}点 | 
+                                ✅ ${record.correctAnswers}問正解 | 
+                                🎯 ${record.accuracy}% | 
+                                📅 ${record.date}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            rankingList.innerHTML = html;
+        }
+
+        // ランキングクリア
+        function clearRankings() {
+            if (confirm('ランキングを全てクリアしますか？')) {
+                rankings = [];
+                localStorage.removeItem('primeFactorizationRankings');
+                displayRankings();
+            }
+        }
+
+        // プレイヤー名入力でEnterキー対応
+        document.getElementById('playerName').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                saveToRanking();
+            }
+        });
+
+        // 初期化
+        displayRankings();
+    </script>
+</body>
+</html>
